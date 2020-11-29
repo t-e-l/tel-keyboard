@@ -4,7 +4,7 @@ android {
     compileSdkVersion 30
     buildToolsVersion '30.0.1'
     defaultConfig {
-        applicationId "rkr.simplekeyboard.inputmethod"
+        applicationId "com.tel.keyboard.inputmethod"
         minSdkVersion 19
         targetSdkVersion 30
         versionCode 75
