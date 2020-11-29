@@ -271,7 +271,7 @@ public final class RichInputConnection {
                 final int spanFlags = mTempObjectForCommitText.getSpanFlags(span);
                 // We have to adjust the end of the span to include an additional character.
                 // This is to avoid splitting a unicode surrogate pair.
-                // See rkr.simplekeyboard.inputmethod.latin.common.Constants.UnicodeSurrogate
+                // See com.tel.keyboard.inputmethod.latin.common.Constants.UnicodeSurrogate
                 // See https://b.corp.google.com/issues/19255233
                 if (0 < spanEnd && spanEnd < mTempObjectForCommitText.length()) {
                     final char spanEndChar = mTempObjectForCommitText.charAt(spanEnd - 1);
