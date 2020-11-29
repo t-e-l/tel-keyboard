@@ -146,7 +146,7 @@ public final class Settings implements SharedPreferences.OnSharedPreferenceChang
             final Resources res) {
         final boolean hasVibrator = AudioAndHapticFeedbackManager.getInstance().hasVibrator();
         return hasVibrator && prefs.getBoolean(PREF_VIBRATE_ON,
-                res.getBoolean(R.bool.config_default_vibration_enabled));
+                false);
     }
 
     public static boolean readKeyPreviewPopupEnabled(final SharedPreferences prefs,
