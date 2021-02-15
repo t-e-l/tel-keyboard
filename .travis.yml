@@ -35,8 +35,7 @@ before_deploy:
 
 deploy:
   provider: releases
-  api_key:
-    secure: $github_token
+  api_key: $github_token
   file: ${APK_NAME}.apk
   skip_cleanup: true
   on:
