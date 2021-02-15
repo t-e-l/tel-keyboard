@@ -320,13 +320,8 @@
             <enum name="phoneSymbols" value="8"  />
             <enum name="number" value="9"  />
         </attr>
-<<<<<<< HEAD
-        <!-- This should be aligned with Keyboard.themeId and
-             {@link com.tel.keyboard.inputmethod.keyboard.KeyboardTheme#THEME_ID_ICS} etc. -->
-=======
         <!-- This should be aligned with
-             {@link rkr.simplekeyboard.inputmethod.keyboard.KeyboardTheme#THEME_ID_ICS} etc. -->
->>>>>>> 070cfbcb11f58fff8c33f2e73d0d0aa9976e15c7
+             {@link com.tel.keyboard.inputmethod.keyboard.KeyboardTheme#THEME_ID_ICS} etc. -->
         <attr name="keyboardTheme" format="enum|string">
             <enum name="LXXLightBorder" value="1" />
             <enum name="LXXDarkBorder" value="2" />
