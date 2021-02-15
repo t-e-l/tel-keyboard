@@ -3,9 +3,10 @@ dist: trusty
 env:
   global:
   - REPO=t-e-l/tel-keyboard
-  - APK_NAME="TEL:Keyboard"
+  - NAME="TEL:Keyboard"
   - ANDROID_API=30
   - ANDROID_BUILD_API=30.0.1
+  - TAG=${NAME}-${TRAVIS_BUILD_NUMBER}
 script:
 - "./gradlew :app:assembleRelease"
 android:
@@ -31,12 +32,13 @@ before_deploy:
 - jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 -keystore keystore.jks -storepass
   $keystore_password -keypass $keystore_alias_password app-release.apk $keystore_alias
 - jarsigner -verify app-release.apk
-- "${ANDROID_HOME}build-tools/${ANDROID_BUILD_API}/zipalign -v 4 app-release.apk ${APK_NAME}.apk"
+- "${ANDROID_HOME}build-tools/${ANDROID_BUILD_API}/zipalign -v 4 app-release.apk ${TAG}.apk"
 
 deploy:
   provider: releases
   api_key: $github_token
-  file: ${APK_NAME}.apk
+  file: ${TAG}.apk
   skip_cleanup: true
+  tag_name: ${TAG}
   on:
     repo: ${REPO}
