@@ -27,4 +27,17 @@ before_install:
 
 before_deploy:
 - find . -name '*.apk'
+- mv ./app/build/outputs/apk/release/app-release-unsigned.apk app-release.apk
+- jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 -keystore keystore.jks -storepass
+  $keystore_password -keypass $keystore_alias_password app-release.apk $keystore_alias
+- jarsigner -verify app-release.apk
+- "${ANDROID_HOME}build-tools/${ANDROID_BUILD_API}/zipalign -v 4 app-release.apk ${APK_NAME}.apk"
 
+deploy:
+  provider: releases
+  api_key:
+    secure: $github_token
+  file: ${APK_NAME}.apk
+  skip_cleanup: true
+  on:
+    repo: ${REPO}
