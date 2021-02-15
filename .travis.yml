@@ -8,3 +8,8 @@ android:
   components:
     - build-tools-30.0.1
     - android-30
+  licenses:
+  - android-sdk-license-.+
+  - android-ndk-license-.+
+  - android-sdk-preview-license-.+
+  - google-gdk-license-.+
