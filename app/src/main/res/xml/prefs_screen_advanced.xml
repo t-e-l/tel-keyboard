@@ -61,9 +61,9 @@
     <CheckBoxPreference
         android:key="pref_space_swipe"
         android:title="@string/space_swipe"
-        android:defaultValue="false" />
+        android:defaultValue="true" />
     <CheckBoxPreference
         android:key="pref_delete_swipe"
         android:title="@string/delete_swipe"
-        android:defaultValue="false" />
+        android:defaultValue="true" />
 </PreferenceScreen>
