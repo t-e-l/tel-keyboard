@@ -13,7 +13,7 @@ import com.tel.keyboard.inputmethod.latin.settings.Settings;
 public class ThemeReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
-        String colorString = intent.getStringExtra("com.tel.keyboard.inputmethod.THEME");
+        String colorString = intent.getStringExtra("color");
         try{
             int color = Color.parseColor(colorString);
             SharedPreferences mPrefs = PreferenceManagerCompat.getDeviceSharedPreferences(context);
