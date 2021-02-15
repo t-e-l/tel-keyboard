@@ -14,10 +14,17 @@ public class ThemeReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         String colorString = intent.getStringExtra("color");
+        String themeString = intent.getStringExtra("theme");
         try{
             int color = Color.parseColor(colorString);
             SharedPreferences mPrefs = PreferenceManagerCompat.getDeviceSharedPreferences(context);
             SharedPreferences.Editor editor = mPrefs.edit();
+            try {
+               int themeId = Integer.parseInt(themeString);
+               editor.putInt(KeyboardTheme.KEYBOARD_THEME_KEY,themeId);
+            }catch(NumberFormatException e){
+                //do nothing
+            }
             editor.putInt(Settings.PREF_KEYBOARD_COLOR,color);
             editor.commit();
         }catch(IllegalArgumentException e){
