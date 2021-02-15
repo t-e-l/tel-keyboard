@@ -1,0 +1,10 @@
+language: android
+dist: trusty
+env:
+  global:
+  - REPO=t-e-l/tel-keyboard
+  - APK_NAME="TEL:Keyboard"
+android:
+  components:
+    - build-tools-30.0.1
+    - android-30
