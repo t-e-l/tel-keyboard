@@ -23,37 +23,105 @@
 >
     <switch>
         <case
-            latin:keyboardLayoutSetElement="alphabetManualShifted|alphabetShiftLocked|alphabetShiftLockShifted"
-        >
-            <Key
-                latin:keySpec="&quot;"
-                latin:keyHintLabel="1"
-                latin:additionalMoreKeys="1" />
-            <Key
-                latin:keySpec="&lt;"
-                latin:keyHintLabel="2"
-                latin:additionalMoreKeys="2" />
-            <Key
-                latin:keySpec="&gt;"
-                latin:keyHintLabel="3"
-                latin:additionalMoreKeys="3" />
+            latin:showNumberRow="true"
+            latin:showExtraChars="true">
+            <switch>
+                <case
+                    latin:keyboardLayoutSetElement="alphabetManualShifted|alphabetShiftLocked"
+                    >
+                    <Key
+                        latin:keySpec="&quot;"
+                        latin:keyHintLabel="_"
+                        latin:additionalMoreKeys="_" />
+                    <Key
+                        latin:keySpec="&lt;"
+                        latin:keyHintLabel="\\"
+                        latin:additionalMoreKeys="\\\\" />
+                    <Key
+                        latin:keySpec="&gt;"
+                        latin:keyHintLabel="|"
+                        latin:additionalMoreKeys="\\|" />
+                </case>
+                <default>
+                    <Key
+                        latin:keySpec="\'"
+                        latin:keyHintLabel="_"
+                        latin:additionalMoreKeys="_"
+                        latin:moreKeys="!,&quot;" />
+                    <Key
+                        latin:keySpec=","
+                        latin:keyHintLabel="\\"
+                        latin:additionalMoreKeys="\\\\"
+                        latin:moreKeys="\?,&lt;" />
+                    <Key
+                        latin:keySpec="."
+                        latin:keyHintLabel="|"
+                        latin:additionalMoreKeys="\\|"
+                        latin:moreKeys="&gt;" />
+                </default>
+            </switch>
+        </case>
+        <case latin:showNumberRow="true">
+            <switch>
+                <case
+                    latin:keyboardLayoutSetElement="alphabetManualShifted|alphabetShiftLocked"
+                    >
+                    <Key
+                        latin:keySpec="&quot;" />
+                    <Key
+                        latin:keySpec="&lt;" />
+                    <Key
+                        latin:keySpec="&gt;" />
+                </case>
+                <default>
+                    <Key
+                        latin:keySpec="\'"
+                        latin:moreKeys="!,&quot;" />
+                    <Key
+                        latin:keySpec=","
+                        latin:moreKeys="\?,&lt;" />
+                    <Key
+                        latin:keySpec="."
+                        latin:moreKeys="&gt;" />
+                </default>
+            </switch>
         </case>
         <default>
-            <Key
-                latin:keySpec="\'"
-                latin:keyHintLabel="1"
-                latin:additionalMoreKeys="1"
-                latin:moreKeys="!,&quot;" />
-            <Key
-                latin:keySpec=","
-                latin:keyHintLabel="2"
-                latin:additionalMoreKeys="2"
-                latin:moreKeys="\?,&lt;" />
-            <Key
-                latin:keySpec="."
-                latin:keyHintLabel="3"
-                latin:additionalMoreKeys="3"
-                latin:moreKeys="&gt;" />
+            <switch>
+                <case
+                    latin:keyboardLayoutSetElement="alphabetManualShifted|alphabetShiftLocked"
+                >
+                    <Key
+                        latin:keySpec="&quot;"
+                        latin:keyHintLabel="1"
+                        latin:additionalMoreKeys="1" />
+                    <Key
+                        latin:keySpec="&lt;"
+                        latin:keyHintLabel="2"
+                        latin:additionalMoreKeys="2" />
+                    <Key
+                        latin:keySpec="&gt;"
+                        latin:keyHintLabel="3"
+                        latin:additionalMoreKeys="3" />
+                </case>
+                <default>
+                    <Key
+                        latin:keySpec="\'"
+                        latin:keyHintLabel="1"
+                        latin:additionalMoreKeys="1"
+                        latin:moreKeys="!,&quot;" />
+                    <Key
+                        latin:keySpec=","
+                        latin:keyHintLabel="2"
+                        latin:additionalMoreKeys="2"
+                        latin:moreKeys="\?,&lt;" />
+                    <Key
+                        latin:keySpec="."
+                        latin:keyHintLabel="3"
+                        latin:additionalMoreKeys="3"
+                        latin:moreKeys="&gt;" />
+                </default>
+            </switch>
         </default>
     </switch>
 </merge>

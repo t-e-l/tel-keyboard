@@ -105,6 +105,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         final Resources res = mThemeContext.getResources();
         final int keyboardWidth = mLatinIME.getMaxWidth();
         final int keyboardHeight = ResourceUtils.getKeyboardHeight(res, settingsValues);
+        builder.setKeyboardTheme(mKeyboardTheme.mThemeId);
         builder.setKeyboardGeometry(keyboardWidth, keyboardHeight);
         builder.setSubtype(mRichImm.getCurrentSubtype());
         builder.setLanguageSwitchKeyEnabled(mLatinIME.shouldShowLanguageSwitchKey());
@@ -215,15 +216,6 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             Log.d(TAG, "setAlphabetShiftLockedKeyboard");
         }
         setKeyboard(KeyboardId.ELEMENT_ALPHABET_SHIFT_LOCKED, KeyboardSwitchState.OTHER);
-    }
-
-    // Implements {@link KeyboardState.SwitchActions}.
-    @Override
-    public void setAlphabetShiftLockShiftedKeyboard() {
-        if (DEBUG_ACTION) {
-            Log.d(TAG, "setAlphabetShiftLockShiftedKeyboard");
-        }
-        setKeyboard(KeyboardId.ELEMENT_ALPHABET_SHIFT_LOCK_SHIFTED, KeyboardSwitchState.OTHER);
     }
 
     // Implements {@link KeyboardState.SwitchActions}.

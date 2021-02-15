@@ -183,8 +183,6 @@ public final class ResourceUtils {
     public static int getKeyboardHeight(final Resources res, final SettingsValues settingsValues) {
         final int defaultKeyboardHeight = getDefaultKeyboardHeight(res);
         float scale = settingsValues.mKeyboardHeightScale;
-        if (settingsValues.mShowNumberRow)
-            scale += 0.1;
         return (int)(defaultKeyboardHeight * scale);
     }
 
@@ -227,6 +225,15 @@ public final class ResourceUtils {
         return getFraction(a, index, UNDEFINED_RATIO);
     }
 
+    public static float getFraction(final TypedArray a, final int index, final float base,
+                                    final float defValue) {
+        final TypedValue value = a.peekValue(index);
+        if (value == null || !isFractionValue(value)) {
+            return defValue;
+        }
+        return value.getFraction(base, base);
+    }
+
     public static int getDimensionPixelSize(final TypedArray a, final int index) {
         final TypedValue value = a.peekValue(index);
         if (value == null || !isDimensionValue(value)) {
@@ -243,6 +250,20 @@ public final class ResourceUtils {
         }
         if (isFractionValue(value)) {
             return a.getFraction(index, base, base, defValue);
+        } else if (isDimensionValue(value)) {
+            return a.getDimension(index, defValue);
+        }
+        return defValue;
+    }
+
+    public static float getDimensionOrFraction(final TypedArray a, final int index,
+                                               final float base, final float defValue) {
+        final TypedValue value = a.peekValue(index);
+        if (value == null) {
+            return defValue;
+        }
+        if (isFractionValue(value)) {
+            return value.getFraction(index, base);
         } else if (isDimensionValue(value)) {
             return a.getDimension(index, defValue);
         }

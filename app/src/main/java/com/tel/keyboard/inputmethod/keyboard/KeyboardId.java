@@ -47,7 +47,6 @@ public final class KeyboardId {
     public static final int ELEMENT_ALPHABET_MANUAL_SHIFTED = 1;
     public static final int ELEMENT_ALPHABET_AUTOMATIC_SHIFTED = 2;
     public static final int ELEMENT_ALPHABET_SHIFT_LOCKED = 3;
-    public static final int ELEMENT_ALPHABET_SHIFT_LOCK_SHIFTED = 4;
     public static final int ELEMENT_SYMBOLS = 5;
     public static final int ELEMENT_SYMBOLS_SHIFTED = 6;
     public static final int ELEMENT_PHONE = 7;
@@ -55,6 +54,7 @@ public final class KeyboardId {
     public static final int ELEMENT_NUMBER = 9;
 
     public final RichInputMethodSubtype mSubtype;
+    public final int mThemeId;
     public final int mWidth;
     public final int mHeight;
     public final int mMode;
@@ -69,6 +69,7 @@ public final class KeyboardId {
 
     public KeyboardId(final int elementId, final KeyboardLayoutSet.Params params) {
         mSubtype = params.mSubtype;
+        mThemeId = params.mKeyboardThemeId;
         mWidth = params.mKeyboardWidth;
         mHeight = params.mKeyboardHeight;
         mMode = params.mMode;
@@ -97,6 +98,7 @@ public final class KeyboardId {
                 id.navigateNext(),
                 id.navigatePrevious(),
                 id.mSubtype,
+                id.mThemeId
         });
     }
 
@@ -114,7 +116,8 @@ public final class KeyboardId {
                 && TextUtils.equals(other.mCustomActionLabel, mCustomActionLabel)
                 && other.navigateNext() == navigateNext()
                 && other.navigatePrevious() == navigatePrevious()
-                && other.mSubtype.equals(mSubtype);
+                && other.mSubtype.equals(mSubtype)
+                && other.mThemeId == mThemeId;
     }
 
     private static boolean isAlphabetKeyboard(final int elementId) {
@@ -165,7 +168,7 @@ public final class KeyboardId {
 
     @Override
     public String toString() {
-        return String.format(Locale.ROOT, "[%s %s:%s %dx%d %s %s%s%s%s%s%s%s%s%s]",
+        return String.format(Locale.ROOT, "[%s %s:%s %dx%d %s %s%s%s%s%s%s %s]",
                 elementIdToName(mElementId),
                 mSubtype.getLocale(),
                 mSubtype.getExtraValueOf(KEYBOARD_LAYOUT_SET),
@@ -176,7 +179,8 @@ public final class KeyboardId {
                 (navigatePrevious() ? " navigatePrevious" : ""),
                 (passwordInput() ? " passwordInput" : ""),
                 (mLanguageSwitchKeyEnabled ? " languageSwitchKeyEnabled" : ""),
-                (isMultiLine() ? " isMultiLine" : "")
+                (isMultiLine() ? " isMultiLine" : ""),
+                KeyboardTheme.getKeyboardThemeName(mThemeId)
         );
     }
 
@@ -194,7 +198,6 @@ public final class KeyboardId {
         case ELEMENT_ALPHABET_MANUAL_SHIFTED: return "alphabetManualShifted";
         case ELEMENT_ALPHABET_AUTOMATIC_SHIFTED: return "alphabetAutomaticShifted";
         case ELEMENT_ALPHABET_SHIFT_LOCKED: return "alphabetShiftLocked";
-        case ELEMENT_ALPHABET_SHIFT_LOCK_SHIFTED: return "alphabetShiftLockShifted";
         case ELEMENT_SYMBOLS: return "symbols";
         case ELEMENT_SYMBOLS_SHIFTED: return "symbolsShifted";
         case ELEMENT_PHONE: return "phone";

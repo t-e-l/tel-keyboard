@@ -92,25 +92,11 @@ public class KeyDetector {
         final int touchX = getTouchX(x);
         final int touchY = getTouchY(y);
 
-        int minDistance = Integer.MAX_VALUE;
-        Key primaryKey = null;
         for (final Key key: mKeyboard.getNearestKeys(touchX, touchY)) {
-            // An edge key always has its enlarged hitbox to respond to an event that occurred in
-            // the empty area around the key. (@see Key#markAsLeftEdge(KeyboardParams)} etc.)
-            if (!key.isOnKey(touchX, touchY)) {
-                continue;
-            }
-            final int distance = key.squaredDistanceToEdge(touchX, touchY);
-            if (distance > minDistance) {
-                continue;
-            }
-            // To take care of hitbox overlaps, we compare key's code here too.
-            if (primaryKey == null || distance < minDistance
-                    || key.getCode() > primaryKey.getCode()) {
-                minDistance = distance;
-                primaryKey = key;
+            if (key.isOnKey(touchX, touchY)) {
+                return key;
             }
         }
-        return primaryKey;
+        return null;
     }
 }

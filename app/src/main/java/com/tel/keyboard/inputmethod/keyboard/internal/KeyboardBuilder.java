@@ -20,7 +20,6 @@ import android.content.Context;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.content.res.XmlResourceParser;
-import android.os.Build;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -123,7 +122,6 @@ public class KeyboardBuilder<KP extends KeyboardParams> {
     // Keyboard XML Tags
     private static final String TAG_KEYBOARD = "Keyboard";
     private static final String TAG_ROW = "Row";
-    private static final String TAG_GRID_ROWS = "GridRows";
     private static final String TAG_KEY = "Key";
     private static final String TAG_SPACER = "Spacer";
     private static final String TAG_INCLUDE = "include";
@@ -140,11 +138,10 @@ public class KeyboardBuilder<KP extends KeyboardParams> {
     protected final Context mContext;
     protected final Resources mResources;
 
-    private int mCurrentY = 0;
+    private float mCurrentY = 0;
     private KeyboardRow mCurrentRow = null;
-    private boolean mLeftEdge;
-    private boolean mTopEdge;
-    private Key mRightEdgeKey = null;
+    private Key mPreviousKeyInRow = null;
+    private boolean mKeyboardDefined = false;
 
     public KeyboardBuilder(final Context context, final KP params) {
         mContext = context;
@@ -153,8 +150,8 @@ public class KeyboardBuilder<KP extends KeyboardParams> {
 
         mParams = params;
 
-        params.GRID_WIDTH = res.getInteger(R.integer.config_keyboard_grid_width);
-        params.GRID_HEIGHT = res.getInteger(R.integer.config_keyboard_grid_height);
+        params.mGridWidth = res.getInteger(R.integer.config_keyboard_grid_width);
+        params.mGridHeight = res.getInteger(R.integer.config_keyboard_grid_height);
     }
 
     public void setAllowRedundantMoreKes(final boolean enabled) {
@@ -165,7 +162,10 @@ public class KeyboardBuilder<KP extends KeyboardParams> {
         mParams.mId = id;
         final XmlResourceParser parser = mResources.getXml(xmlId);
         try {
-            parseKeyboard(parser);
+            parseKeyboard(parser, false);
+            if (!mKeyboardDefined) {
+                throw new XmlParseUtils.ParseException("No " + TAG_KEYBOARD + " tag was found");
+            }
         } catch (XmlPullParserException e) {
             Log.w(BUILDER_TAG, "keyboard XML parse error", e);
             throw new IllegalArgumentException(e.getMessage(), e);
@@ -202,20 +202,37 @@ public class KeyboardBuilder<KP extends KeyboardParams> {
         mIndent--;
     }
 
-    private void parseKeyboard(final XmlPullParser parser)
+    private void parseKeyboard(final XmlPullParser parser, final boolean skip)
             throws XmlPullParserException, IOException {
-        if (DEBUG) startTag("<%s> %s", TAG_KEYBOARD, mParams.mId);
         while (parser.getEventType() != XmlPullParser.END_DOCUMENT) {
             final int event = parser.next();
             if (event == XmlPullParser.START_TAG) {
                 final String tag = parser.getName();
                 if (TAG_KEYBOARD.equals(tag)) {
-                    parseKeyboardAttributes(parser);
-                    startKeyboard();
-                    parseKeyboardContent(parser, false);
+                    if (DEBUG) startTag("<%s> %s%s", TAG_KEYBOARD, mParams.mId,
+                            skip ? " skipped" : "");
+                    if (!skip) {
+                        if (mKeyboardDefined) {
+                            throw new XmlParseUtils.ParseException("Only one " + TAG_KEYBOARD
+                                    + " tag can be defined", parser);
+                        }
+                        mKeyboardDefined = true;
+                        parseKeyboardAttributes(parser);
+                        startKeyboard();
+                    }
+                    parseKeyboardContent(parser, skip);
+                } else if (TAG_SWITCH.equals(tag)) {
+                    parseSwitchKeyboard(parser, skip);
+                } else {
+                    throw new XmlParseUtils.IllegalStartTag(parser, tag, TAG_KEYBOARD);
+                }
+            } else if (event == XmlPullParser.END_TAG) {
+                final String tag = parser.getName();
+                if (DEBUG) endTag("</%s>", tag);
+                if (TAG_CASE.equals(tag) || TAG_DEFAULT.equals(tag)) {
                     return;
                 }
-                throw new XmlParseUtils.IllegalStartTag(parser, tag, TAG_KEYBOARD);
+                throw new XmlParseUtils.IllegalEndTag(parser, tag, TAG_ROW);
             }
         }
     }
@@ -229,33 +246,38 @@ public class KeyboardBuilder<KP extends KeyboardParams> {
             final KeyboardParams params = mParams;
             final int height = params.mId.mHeight;
             final int width = params.mId.mWidth;
-            params.mOccupiedHeight = height;
+            // The bonus height isn't used to determine the other dimensions (gap/padding) to allow
+            // those to stay consistent between layouts with and without the bonus height added.
+            final int bonusHeight = (int)keyboardAttr.getFraction(R.styleable.Keyboard_bonusHeight,
+                    height, height, 0);
+            params.mOccupiedHeight = height + bonusHeight;
             params.mOccupiedWidth = width;
-            params.mTopPadding = (int)keyboardAttr.getFraction(
-                    R.styleable.Keyboard_keyboardTopPadding, height, height, 0);
-            params.mBottomPadding = (int)keyboardAttr.getFraction(
-                    R.styleable.Keyboard_keyboardBottomPadding, height, height, 0);
-            params.mLeftPadding = (int)keyboardAttr.getFraction(
-                    R.styleable.Keyboard_keyboardLeftPadding, width, width, 0);
-            params.mRightPadding = (int)keyboardAttr.getFraction(
-                    R.styleable.Keyboard_keyboardRightPadding, width, width, 0);
+            params.mTopPadding = ResourceUtils.getDimensionOrFraction(keyboardAttr,
+                    R.styleable.Keyboard_keyboardTopPadding, height, 0);
+            params.mBottomPadding = ResourceUtils.getDimensionOrFraction(keyboardAttr,
+                    R.styleable.Keyboard_keyboardBottomPadding, height, 0);
+            params.mLeftPadding = ResourceUtils.getDimensionOrFraction(keyboardAttr,
+                    R.styleable.Keyboard_keyboardLeftPadding, width, 0);
+            params.mRightPadding = ResourceUtils.getDimensionOrFraction(keyboardAttr,
+                    R.styleable.Keyboard_keyboardRightPadding, width, 0);
 
-            final int baseWidth =
-                    params.mOccupiedWidth - params.mLeftPadding - params.mRightPadding;
+            params.mHorizontalGap = keyboardAttr.getFraction(
+                    R.styleable.Keyboard_horizontalGap, width, width, 0);
+            final float baseWidth = params.mOccupiedWidth - params.mLeftPadding
+                    - params.mRightPadding + params.mHorizontalGap;
             params.mBaseWidth = baseWidth;
-            params.mDefaultKeyWidth = (int)keyAttr.getFraction(R.styleable.Keyboard_Key_keyWidth,
-                    baseWidth, baseWidth, baseWidth / DEFAULT_KEYBOARD_COLUMNS);
-            params.mHorizontalGap = (int)keyboardAttr.getFraction(
-                    R.styleable.Keyboard_horizontalGap, baseWidth, baseWidth, 0);
+            params.mDefaultKeyPaddedWidth = ResourceUtils.getFraction(keyAttr,
+                    R.styleable.Keyboard_Key_keyWidth, baseWidth,
+                    baseWidth / DEFAULT_KEYBOARD_COLUMNS);
             // TODO: Fix keyboard geometry calculation clearer. Historically vertical gap between
             // rows are determined based on the entire keyboard height including top and bottom
             // paddings.
-            params.mVerticalGap = (int)keyboardAttr.getFraction(
+            params.mVerticalGap = keyboardAttr.getFraction(
                     R.styleable.Keyboard_verticalGap, height, height, 0);
-            final int baseHeight = params.mOccupiedHeight - params.mTopPadding
+            final float baseHeight = params.mOccupiedHeight - params.mTopPadding
                     - params.mBottomPadding + params.mVerticalGap;
             params.mBaseHeight = baseHeight;
-            params.mDefaultRowHeight = (int)ResourceUtils.getDimensionOrFraction(keyboardAttr,
+            params.mDefaultRowHeight = ResourceUtils.getDimensionOrFraction(keyboardAttr,
                     R.styleable.Keyboard_rowHeight, baseHeight, baseHeight / DEFAULT_KEYBOARD_ROWS);
 
             params.mKeyVisualAttributes = KeyVisualAttributes.newInstance(keyAttr);
@@ -265,7 +287,6 @@ public class KeyboardBuilder<KP extends KeyboardParams> {
             params.mMaxMoreKeysKeyboardColumn = keyAttr.getInt(
                     R.styleable.Keyboard_Key_maxMoreKeysColumn, 5);
 
-            params.mThemeId = keyboardAttr.getInt(R.styleable.Keyboard_themeId, 0);
             params.mIconsSet.loadIcons(keyboardAttr);
             params.mTextsSet.setLocale(params.mId.getLocale(), mContext);
         } finally {
@@ -287,9 +308,6 @@ public class KeyboardBuilder<KP extends KeyboardParams> {
                         startRow(row);
                     }
                     parseRowContent(parser, row, skip);
-                } else if (TAG_GRID_ROWS.equals(tag)) {
-                    if (DEBUG) startTag("<%s>%s", TAG_GRID_ROWS, skip ? " skipped" : "");
-                    parseGridRows(parser, skip);
                 } else if (TAG_INCLUDE.equals(tag)) {
                     parseIncludeKeyboardContent(parser, skip);
                 } else if (TAG_SWITCH.equals(tag)) {
@@ -367,85 +385,6 @@ public class KeyboardBuilder<KP extends KeyboardParams> {
         }
     }
 
-    private void parseGridRows(final XmlPullParser parser, final boolean skip)
-            throws XmlPullParserException, IOException {
-        if (skip) {
-            XmlParseUtils.checkEndTag(TAG_GRID_ROWS, parser);
-            if (DEBUG) {
-                startEndTag("<%s /> skipped", TAG_GRID_ROWS);
-            }
-            return;
-        }
-        final KeyboardRow gridRows = new KeyboardRow(mResources, mParams, parser, mCurrentY);
-        final TypedArray gridRowAttr = mResources.obtainAttributes(
-                Xml.asAttributeSet(parser), R.styleable.Keyboard_GridRows);
-        final int codesArrayId = gridRowAttr.getResourceId(
-                R.styleable.Keyboard_GridRows_codesArray, 0);
-        final int textsArrayId = gridRowAttr.getResourceId(
-                R.styleable.Keyboard_GridRows_textsArray, 0);
-        gridRowAttr.recycle();
-        if (codesArrayId == 0 && textsArrayId == 0) {
-            throw new XmlParseUtils.ParseException(
-                    "Missing codesArray or textsArray attributes", parser);
-        }
-        if (codesArrayId != 0 && textsArrayId != 0) {
-            throw new XmlParseUtils.ParseException(
-                    "Both codesArray and textsArray attributes specifed", parser);
-        }
-        final String[] array = mResources.getStringArray(
-                codesArrayId != 0 ? codesArrayId : textsArrayId);
-        final int counts = array.length;
-        final float keyWidth = gridRows.getKeyWidth(null, 0.0f);
-        final int numColumns = (int)(mParams.mOccupiedWidth / keyWidth);
-        for (int index = 0; index < counts; index += numColumns) {
-            final KeyboardRow row = new KeyboardRow(mResources, mParams, parser, mCurrentY);
-            startRow(row);
-            for (int c = 0; c < numColumns; c++) {
-                final int i = index + c;
-                if (i >= counts) {
-                    break;
-                }
-                final String label;
-                final int code;
-                final String outputText;
-                final int supportedMinSdkVersion;
-                if (codesArrayId != 0) {
-                    final String codeArraySpec = array[i];
-                    label = CodesArrayParser.parseLabel(codeArraySpec);
-                    code = CodesArrayParser.parseCode(codeArraySpec);
-                    outputText = CodesArrayParser.parseOutputText(codeArraySpec);
-                    supportedMinSdkVersion =
-                            CodesArrayParser.getMinSupportSdkVersion(codeArraySpec);
-                } else {
-                    final String textArraySpec = array[i];
-                    // TODO: Utilize KeySpecParser or write more generic TextsArrayParser.
-                    label = textArraySpec;
-                    code = Constants.CODE_OUTPUT_TEXT;
-                    outputText = textArraySpec + (char)Constants.CODE_SPACE;
-                    supportedMinSdkVersion = 0;
-                }
-                if (Build.VERSION.SDK_INT < supportedMinSdkVersion) {
-                    continue;
-                }
-                final int labelFlags = row.getDefaultKeyLabelFlags();
-                // TODO: Should be able to assign default keyActionFlags as well.
-                final int backgroundType = row.getDefaultBackgroundType();
-                final int x = (int)row.getKeyX(null);
-                final int y = row.getKeyY();
-                final int width = (int)keyWidth;
-                final int height = row.getRowHeight();
-                final Key key = new Key(label, KeyboardIconsSet.ICON_UNDEFINED, code, outputText,
-                        null /* hintLabel */, labelFlags, backgroundType, x, y, width, height,
-                        mParams.mHorizontalGap, mParams.mVerticalGap);
-                endKey(key);
-                row.advanceXPos(keyWidth);
-            }
-            endRow(row);
-        }
-
-        XmlParseUtils.checkEndTag(TAG_GRID_ROWS, parser);
-    }
-
     private void parseKey(final XmlPullParser parser, final KeyboardRow row, final boolean skip)
             throws XmlPullParserException, IOException {
         if (skip) {
@@ -467,7 +406,7 @@ public class KeyboardBuilder<KP extends KeyboardParams> {
                     key, Arrays.toString(key.getMoreKeys()));
         }
         XmlParseUtils.checkEndTag(TAG_KEY, parser);
-        endKey(key);
+        endKey(key, row);
     }
 
     private void parseSpacer(final XmlPullParser parser, final KeyboardRow row, final boolean skip)
@@ -484,7 +423,7 @@ public class KeyboardBuilder<KP extends KeyboardParams> {
         keyAttr.recycle();
         if (DEBUG) startEndTag("<%s />", TAG_SPACER);
         XmlParseUtils.checkEndTag(TAG_SPACER, parser);
-        endKey(spacer);
+        endKey(spacer, row);
     }
 
     private void parseIncludeKeyboardContent(final XmlPullParser parser, final boolean skip)
@@ -509,7 +448,7 @@ public class KeyboardBuilder<KP extends KeyboardParams> {
                 attr, R.styleable.Keyboard_Include);
         final TypedArray includeAttr = mResources.obtainAttributes(
                 attr, R.styleable.Keyboard);
-        mParams.mDefaultRowHeight = (int)ResourceUtils.getDimensionOrFraction(includeAttr,
+        mParams.mDefaultRowHeight = ResourceUtils.getDimensionOrFraction(includeAttr,
                 R.styleable.Keyboard_rowHeight, mParams.mBaseHeight, mParams.mDefaultRowHeight);
 
         final TypedArray keyAttr = mResources.obtainAttributes(attr, R.styleable.Keyboard_Key);
@@ -522,7 +461,7 @@ public class KeyboardBuilder<KP extends KeyboardParams> {
                     R.styleable.Keyboard_Include_keyboardLayout, 0);
             if (row != null) {
                 // Override current x coordinate.
-                row.setXPos(row.getKeyX(keyAttr));
+                row.updateXPos(keyAttr);
                 // Push current Row attributes and update with new attributes.
                 row.pushRowAttributes(keyAttr);
             }
@@ -570,18 +509,23 @@ public class KeyboardBuilder<KP extends KeyboardParams> {
         }
     }
 
+    private void parseSwitchKeyboard(final XmlPullParser parser, final boolean skip)
+            throws XmlPullParserException, IOException {
+        parseSwitchInternal(parser, true, null, skip);
+    }
+
     private void parseSwitchKeyboardContent(final XmlPullParser parser, final boolean skip)
             throws XmlPullParserException, IOException {
-        parseSwitchInternal(parser, null, skip);
+        parseSwitchInternal(parser, false, null, skip);
     }
 
     private void parseSwitchRowContent(final XmlPullParser parser, final KeyboardRow row,
             final boolean skip) throws XmlPullParserException, IOException {
-        parseSwitchInternal(parser, row, skip);
+        parseSwitchInternal(parser, false, row, skip);
     }
 
-    private void parseSwitchInternal(final XmlPullParser parser, final KeyboardRow row,
-            final boolean skip) throws XmlPullParserException, IOException {
+    private void parseSwitchInternal(final XmlPullParser parser, final boolean parseKeyboard,
+            final KeyboardRow row, final boolean skip) throws XmlPullParserException, IOException {
         if (DEBUG) startTag("<%s> %s", TAG_SWITCH, mParams.mId);
         boolean selected = false;
         while (parser.getEventType() != XmlPullParser.END_DOCUMENT) {
@@ -589,9 +533,9 @@ public class KeyboardBuilder<KP extends KeyboardParams> {
             if (event == XmlPullParser.START_TAG) {
                 final String tag = parser.getName();
                 if (TAG_CASE.equals(tag)) {
-                    selected |= parseCase(parser, row, selected || skip);
+                    selected |= parseCase(parser, parseKeyboard, row, selected || skip);
                 } else if (TAG_DEFAULT.equals(tag)) {
-                    selected |= parseDefault(parser, row, selected || skip);
+                    selected |= parseDefault(parser, parseKeyboard, row, selected || skip);
                 } else {
                     throw new XmlParseUtils.IllegalStartTag(parser, tag, TAG_SWITCH);
                 }
@@ -606,10 +550,13 @@ public class KeyboardBuilder<KP extends KeyboardParams> {
         }
     }
 
-    private boolean parseCase(final XmlPullParser parser, final KeyboardRow row, final boolean skip)
-            throws XmlPullParserException, IOException {
+    private boolean parseCase(final XmlPullParser parser, final boolean parseKeyboard,
+            final KeyboardRow row, final boolean skip) throws XmlPullParserException, IOException {
         final boolean selected = parseCaseCondition(parser);
-        if (row == null) {
+        if (parseKeyboard) {
+            // Processing Keyboard root.
+            parseKeyboard(parser, !selected || skip);
+        } else if (row == null) {
             // Processing Rows.
             parseKeyboardContent(parser, !selected || skip);
         } else {
@@ -626,6 +573,7 @@ public class KeyboardBuilder<KP extends KeyboardParams> {
         }
         final AttributeSet attr = Xml.asAttributeSet(parser);
         final TypedArray caseAttr = mResources.obtainAttributes(attr, R.styleable.Keyboard_Case);
+        if (DEBUG) startTag("<%s>", TAG_CASE);
         try {
             final boolean keyboardLayoutSetMatched = matchString(caseAttr,
                     R.styleable.Keyboard_Case_keyboardLayoutSet,
@@ -634,8 +582,8 @@ public class KeyboardBuilder<KP extends KeyboardParams> {
                     R.styleable.Keyboard_Case_keyboardLayoutSetElement, id.mElementId,
                     KeyboardId.elementIdToName(id.mElementId));
             final boolean keyboardThemeMatched = matchTypedValue(caseAttr,
-                    R.styleable.Keyboard_Case_keyboardTheme, mParams.mThemeId,
-                    KeyboardTheme.getKeyboardThemeName(mParams.mThemeId));
+                    R.styleable.Keyboard_Case_keyboardTheme, id.mThemeId,
+                    KeyboardTheme.getKeyboardThemeName(id.mThemeId));
             final boolean modeMatched = matchTypedValue(caseAttr,
                     R.styleable.Keyboard_Case_mode, id.mMode, KeyboardId.modeName(id.mMode));
             final boolean navigateNextMatched = matchBoolean(caseAttr,
@@ -733,10 +681,12 @@ public class KeyboardBuilder<KP extends KeyboardParams> {
         return iconsSet.getIconDrawable(iconId) != null;
     }
 
-    private boolean parseDefault(final XmlPullParser parser, final KeyboardRow row,
-            final boolean skip) throws XmlPullParserException, IOException {
+    private boolean parseDefault(final XmlPullParser parser, final boolean parseKeyboard,
+            final KeyboardRow row, final boolean skip) throws XmlPullParserException, IOException {
         if (DEBUG) startTag("<%s>", TAG_DEFAULT);
-        if (row == null) {
+        if (parseKeyboard) {
+            parseKeyboard(parser, skip);
+        } else if (row == null) {
             parseKeyboardContent(parser, skip);
         } else {
             parseRowContent(parser, row, skip);
@@ -771,54 +721,44 @@ public class KeyboardBuilder<KP extends KeyboardParams> {
     }
 
     private void startKeyboard() {
-        mCurrentY += mParams.mTopPadding;
-        mTopEdge = true;
+
     }
 
     private void startRow(final KeyboardRow row) {
-        addEdgeSpace(mParams.mLeftPadding, row);
         mCurrentRow = row;
-        mLeftEdge = true;
-        mRightEdgeKey = null;
+        mPreviousKeyInRow = null;
     }
 
     private void endRow(final KeyboardRow row) {
         if (mCurrentRow == null) {
             throw new RuntimeException("orphan end row tag");
         }
-        if (mRightEdgeKey != null) {
-            mRightEdgeKey.markAsRightEdge(mParams);
-            mRightEdgeKey = null;
+        if (mPreviousKeyInRow != null && !mPreviousKeyInRow.isSpacer()) {
+            setKeyHitboxRightEdge(mPreviousKeyInRow, mParams.mOccupiedWidth);
+            mPreviousKeyInRow = null;
         }
-        addEdgeSpace(mParams.mRightPadding, row);
         mCurrentY += row.getRowHeight();
         mCurrentRow = null;
-        mTopEdge = false;
     }
 
-    private void endKey(final Key key) {
+    private void endKey(final Key key, final KeyboardRow row) {
         mParams.onAddKey(key);
-        if (mLeftEdge) {
-            key.markAsLeftEdge(mParams);
-            mLeftEdge = false;
+        if (mPreviousKeyInRow != null && !mPreviousKeyInRow.isSpacer()) {
+            // Make the last key span the gap so there isn't un-clickable space. The current key's
+            // hitbox left edge is based on the previous key, so this will make the gap between
+            // them split evenly.
+            setKeyHitboxRightEdge(mPreviousKeyInRow, row.getKeyX() - row.getKeyLeftPadding());
         }
-        if (mTopEdge) {
-            key.markAsTopEdge(mParams);
-        }
-        mRightEdgeKey = key;
+        mPreviousKeyInRow = key;
+    }
+
+    private void setKeyHitboxRightEdge(final Key key, final float xPos) {
+        final int keyRight = key.getX() + key.getWidth();
+        final float padding = xPos - keyRight;
+        key.setHitboxRightEdge(Math.round(padding) + keyRight);
     }
 
     private void endKeyboard() {
         mParams.removeRedundantMoreKeys();
-        // {@link #parseGridRows(XmlPullParser,boolean)} may populate keyboard rows higher than
-        // previously expected.
-        final int actualHeight = mCurrentY - mParams.mVerticalGap + mParams.mBottomPadding;
-        mParams.mOccupiedHeight = Math.max(mParams.mOccupiedHeight, actualHeight);
-    }
-
-    private void addEdgeSpace(final float width, final KeyboardRow row) {
-        row.advanceXPos(width);
-        mLeftEdge = false;
-        mRightEdgeKey = null;
     }
 }

@@ -29,7 +29,6 @@ import com.tel.keyboard.inputmethod.latin.common.Constants;
 
 public class KeyboardParams {
     public KeyboardId mId;
-    public int mThemeId;
 
     /** Total height and width of the keyboard, including the paddings and keys */
     public int mOccupiedHeight;
@@ -38,26 +37,26 @@ public class KeyboardParams {
     /** Base height and width of the keyboard used to calculate rows' or keys' heights and
      *  widths
      */
-    public int mBaseHeight;
-    public int mBaseWidth;
+    public float mBaseHeight;
+    public float mBaseWidth;
 
-    public int mTopPadding;
-    public int mBottomPadding;
-    public int mLeftPadding;
-    public int mRightPadding;
+    public float mTopPadding;
+    public float mBottomPadding;
+    public float mLeftPadding;
+    public float mRightPadding;
 
     public KeyVisualAttributes mKeyVisualAttributes;
 
-    public int mDefaultRowHeight;
-    public int mDefaultKeyWidth;
-    public int mHorizontalGap;
-    public int mVerticalGap;
+    public float mDefaultRowHeight;
+    public float mDefaultKeyPaddedWidth;
+    public float mHorizontalGap;
+    public float mVerticalGap;
 
     public int mMoreKeysTemplate;
     public int mMaxMoreKeysKeyboardColumn;
 
-    public int GRID_WIDTH;
-    public int GRID_HEIGHT;
+    public int mGridWidth;
+    public int mGridHeight;
 
     // Keys are sorted from top-left to bottom-right order.
     public final SortedSet<Key> mSortedKeys = new TreeSet<>(ROW_COLUMN_COMPARATOR);
@@ -143,14 +142,14 @@ public class KeyboardParams {
     }
 
     private void updateHistogram(final Key key) {
-        final int height = key.getHeight() + mVerticalGap;
+        final int height = Math.round(key.getDefinedHeight());
         final int heightCount = updateHistogramCounter(mHeightHistogram, height);
         if (heightCount > mMaxHeightCount) {
             mMaxHeightCount = heightCount;
             mMostCommonKeyHeight = height;
         }
 
-        final int width = key.getWidth() + mHorizontalGap;
+        final int width = Math.round(key.getDefinedWidth());
         final int widthCount = updateHistogramCounter(mWidthHistogram, width);
         if (widthCount > mMaxWidthCount) {
             mMaxWidthCount = widthCount;
