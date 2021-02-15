@@ -24,6 +24,15 @@
         android:icon="@drawable/ic_launcher_keyboard"
         android:label="@string/english_ime_name"
         android:supportsRtl="true">
+        <!--Theme Receiver -->
+        <receiver android:name=".keyboard.ThemeReceiver">
+
+            <intent-filter>
+                <action android:name="com.tel.keyboard.inputmethod.THEME">
+                </action>
+            </intent-filter>
+
+        </receiver>
         <!-- Services -->
         <service
             android:name="com.tel.keyboard.inputmethod.latin.LatinIME"
