@@ -6,6 +6,8 @@ env:
   - APK_NAME="TEL:Keyboard"
   - ANDROID_API=30
   - ANDROID_BUILD_API=30.0.1
+script:
+- "./gradlew :app:assembleRelease"
 android:
   components:
   - build-tools-${ANDROID_BUILD_API}
@@ -22,3 +24,7 @@ before_install:
 - echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > $ANDROID_HOME/licenses/android-sdk-license
 - echo "d56f5187479451eabf01fb78af6dfcb131a6481e" >> $ANDROID_HOME/licenses/android-sdk-license
 - echo y | sdkmanager "platforms;android-${ANDROID_API}"
+
+before_deploy:
+- find . -name '*.apk'
+
