@@ -3,7 +3,7 @@ dist: trusty
 env:
   global:
   - REPO=t-e-l/tel-keyboard
-  - NAME="TEL:Keyboard"
+  - NAME="TEL-Keyboard"
   - ANDROID_API=30
   - ANDROID_BUILD_API=30.0.1
   - TAG=${NAME}-${TRAVIS_BUILD_NUMBER}
