@@ -21,7 +21,7 @@ public class ThemeReceiver extends BroadcastReceiver {
             SharedPreferences.Editor editor = mPrefs.edit();
             try {
                int themeId = Integer.parseInt(themeString);
-               editor.putInt(KeyboardTheme.KEYBOARD_THEME_KEY,themeId);
+               editor.putString(KeyboardTheme.KEYBOARD_THEME_KEY,Integer.toString(themeId));
             }catch(NumberFormatException e){
                 //do nothing
             }
